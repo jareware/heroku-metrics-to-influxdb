@@ -1,0 +1,52 @@
+{
+  "name": "heroku-metrics-to-influxdb",
+  "version": "1.0.0",
+  "description": "Parses Heroku runtime metrics and ships them to InfluxDB",
+  "main": "index.js",
+  "engines": {
+    "npm": "5.6.0",
+    "node": "8.10.0"
+  },
+  "scripts": {
+    "lint": "echo lint-versions lint-ts lint-prettier | parallel --delimiter ' ' --trim npm run --silent {}",
+    "lint-versions": "check-node-version --package",
+    "lint-ts": "tsc --noEmit --project .",
+    "lint-prettier": "prettier --list-different '**/*.ts'",
+    "lint-watch": "chokidar '**/*.ts' --ignore node_modules --debounce 100 --initial --command 'npm run --silent lint'",
+    "lint-fix": "prettier --write '**/*.ts'",
+    "test": "check-node-version --package && mocha --require ts-node/register $(npm run --silent test-list)",
+    "test-watch": "mocha --require ts-node/register --watch --watch-extensions ts $(npm run --silent test-list)",
+    "test-list": "find . -name '*.spec.ts' -not -path './node_modules/*'",
+    "precommit": "echo test lint-versions lint-ts lint-prettier | parallel --delimiter ' ' --trim npm run --silent {}",
+    "build": "echo 'var lambda = exports;' > index.js && ./node_modules/.bin/browserify -p tsify --node index.ts >> index.js && zip lambda.zip index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jareware/heroku-metrics-to-influxdb.git"
+  },
+  "author": "Jarno Rantanen <jarno@jrw.fi>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jareware/heroku-metrics-to-influxdb/issues"
+  },
+  "homepage": "https://github.com/jareware/heroku-metrics-to-influxdb",
+  "dependencies": {
+    "@types/chai": "^4.0.4",
+    "@types/lodash": "^4.14.112",
+    "@types/mocha": "^2.2.43",
+    "@types/node": "^8.10.15",
+    "browserify": "^15.1.0",
+    "chai": "^4.1.2",
+    "check-node-version": "^3.1.1",
+    "chokidar-cli": "^1.2.0",
+    "heroku": "^7.7.4",
+    "husky": "^0.14.3",
+    "lodash": "^4.17.10",
+    "mocha": "^4.0.1",
+    "parallel": "^1.2.0",
+    "prettier": "^1.10.2",
+    "ts-node": "^3.3.0",
+    "tsify": "^3.0.4",
+    "typescript": "^2.6.2"
+  }
+}
