@@ -1,3 +1,6 @@
+import { execShell } from './shell';
+import { isNotNull } from './types';
+
 type MetricsSample = {
   sampleName: string;
   sampleValue: number;
@@ -12,6 +15,7 @@ type MetricsLine = {
   samples: MetricsSample[];
 };
 
+const HEROKU_BIN = './node_modules/.bin/heroku';
 const RUNTIME_METRICS_LOG_LINE = /^(.+?) heroku\[(.+?)\]: source=(.+?)\.\d+ dyno=(.+?) (sample#.+)$/;
 
 // @see https://devcenter.heroku.com/articles/log-runtime-metrics#log-format
@@ -29,4 +33,15 @@ export function parseRuntimeMetricsLogLine(line: string): MetricsLine | null {
       return { sampleName, sampleValue, sampleUnit };
     });
   return { timestamp, dynoName, dynoUuid, dynoType, samples };
+}
+
+export function getRuntimeMetricsForApp(apiKey: string, appName: string, lines = 16): Promise<MetricsLine[]> {
+  return execShell(
+    `HEROKU_API_KEY=${apiKey} ${HEROKU_BIN} logs --app ${appName} --source heroku --no-color --num ${lines}`,
+  ).then(stdout =>
+    stdout
+      .split('\n')
+      .map(parseRuntimeMetricsLogLine)
+      .filter(isNotNull),
+  );
 }
