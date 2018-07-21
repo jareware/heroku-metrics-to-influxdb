@@ -35,9 +35,14 @@ export function parseRuntimeMetricsLogLine(line: string): MetricsLine | null {
   return { timestamp, dynoName, dynoUuid, dynoType, samples };
 }
 
-export function getRuntimeMetricsForApp(apiKey: string, appName: string, lines = 16): Promise<MetricsLine[]> {
+export function getRuntimeMetricsForApp(
+  apiKey: string,
+  appName: string,
+  dynoType: string, // e.g. "web" or "worker"
+  lines = 16,
+): Promise<MetricsLine[]> {
   return execShell(
-    `HEROKU_API_KEY=${apiKey} ${HEROKU_BIN} logs --app ${appName} --source heroku --no-color --num ${lines}`,
+    `HEROKU_API_KEY=${apiKey} ${HEROKU_BIN} logs --app ${appName} --source heroku --dyno ${dynoType} --no-color --num ${lines}`,
   ).then(stdout =>
     stdout
       .split('\n')
