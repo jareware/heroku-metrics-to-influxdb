@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { assert } from 'console';
 import { ObjMap, assertExhausted } from './types';
 
@@ -47,4 +48,26 @@ function escape(
     default:
       return assertExhausted(context);
   }
+}
+
+export function sendInfluxLines(
+  dbUrl: string, // e.g. "https://my-influxdb.example.com/"
+  dbName: string, // e.g. "my_metrics_db"
+  lines: string | string[], // see toInfluxLine()
+  credentials: string = '', // e.g. "user:pass"
+  axiosImplementation = axios, // only useful in testing
+) {
+  const url = (dbUrl + '').replace(/\/*$/, '/write?db=' + dbName);
+  const [username, password] = credentials ? credentials.split(':') : [null, null];
+  const auth = username && password ? { username, password } : undefined;
+  const data = typeof lines === 'string' ? lines : lines.join('\n');
+  return axiosImplementation.post(url, data, { auth }).then(
+    () => data,
+    err => {
+      const count = typeof lines === 'string' ? 1 : lines.length;
+      const error = new Error(`Could not send ${count} lines to InfluxDB (error was "${err.message}")`);
+      (error as any).influxLinesFailedToSend = data; // attach the failed payload to the error, in case the caller wants to e.g. implement a retry
+      throw error;
+    },
+  );
 }
