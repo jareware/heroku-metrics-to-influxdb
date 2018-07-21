@@ -1,5 +1,6 @@
 import { execShell } from './shell';
 import { isNotNull } from './types';
+import { flatMap, groupBy, map, last, sortBy } from 'lodash';
 
 type MetricsSample = {
   sampleName: string;
@@ -14,6 +15,8 @@ type MetricsLine = {
   dynoUuid: string;
   samples: MetricsSample[];
 };
+
+type Flattened = MetricsLine & MetricsSample;
 
 const HEROKU_BIN = './node_modules/.bin/heroku';
 const RUNTIME_METRICS_LOG_LINE = /^(.+?) heroku\[(.+?)\]: source=(.+?)\.\d+ dyno=(.+?) (sample#.+)$/;
@@ -49,4 +52,11 @@ export function getRuntimeMetricsForApp(
       .map(parseRuntimeMetricsLogLine)
       .filter(isNotNull),
   );
+}
+
+export function flattenLatestSamples(lines: MetricsLine[]): Flattened[] {
+  const flattened = flatMap(lines, line => line.samples.map(sample => ({ ...sample, ...line })));
+  const grouped = groupBy(flattened, line => `${line.dynoUuid}-${line.sampleName}`); // group by sample name per each distinct dyno
+  const latests = map(grouped, lines => last(sortBy(lines, 'timestamp'))).filter(isNotNull);
+  return latests;
 }
