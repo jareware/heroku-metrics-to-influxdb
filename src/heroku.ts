@@ -1,6 +1,6 @@
 import { execShell } from './shell';
 import { isNotNull } from './types';
-import { flatMap, groupBy, map, last, sortBy } from 'lodash';
+import { flatMap, groupBy, map, last, sortBy, isNumber, keys } from 'lodash';
 
 type MetricsSample = {
   sampleName: string;
@@ -54,9 +54,31 @@ export function getRuntimeMetricsForApp(
   );
 }
 
-export function flattenLatestSamples(lines: MetricsLine[]): Flattened[] {
+export function flattenAndSelectSamples(lines: MetricsLine[], calculateMemoryUsed = true): Flattened[] {
   const flattened = flatMap(lines, line => line.samples.map(sample => ({ ...sample, ...line })));
   const grouped = groupBy(flattened, line => `${line.dynoUuid}-${line.sampleName}`); // group by sample name per each distinct dyno
   const latests = map(grouped, lines => last(sortBy(lines, 'timestamp'))).filter(isNotNull);
-  return latests;
+  const isNumeric = (x: any): x is number => isNumber(x) && isFinite(x);
+  if (calculateMemoryUsed) {
+    // See https://github.com/influxdata/influxdb/issues/3552 for why this is annoying to calculate after-the-fact
+    const memoryUsedSamples: typeof latests = keys(groupBy(latests, 'dynoUuid'))
+      .map(dynoUuid => {
+        const latestRss = latests.find(x => x.dynoUuid === dynoUuid && x.sampleName === 'memory_rss');
+        const latestQuota = latests.find(x => x.dynoUuid === dynoUuid && x.sampleName === 'memory_quota');
+        if (!latestRss || !latestQuota) return null; // no samples found from which to calculate used percentage
+        const memoryUsed = (latestRss.sampleValue * 100) / latestQuota.sampleValue;
+        if (!isNumeric(memoryUsed)) {
+          console.log(
+            `Warn: Could not calculate "memory_used" from "${latestRss.sampleValue}" and "${latestQuota.sampleValue}"`,
+          );
+          return null; // most likely got a NaN -> log it for any hope of debugging it later
+        }
+        const sampleValue = Math.round(memoryUsed);
+        return { ...latestRss, samples: [], sampleName: 'memory_used', sampleValue, sampleUnit: '%' };
+      })
+      .filter(isNotNull);
+    return latests.concat(memoryUsedSamples);
+  } else {
+    return latests;
+  }
 }
