@@ -31,22 +31,22 @@
   },
   "homepage": "https://github.com/jareware/heroku-metrics-to-influxdb",
   "dependencies": {
-    "@types/chai": "^4.0.4",
+    "@types/chai": "^4.1.4",
     "@types/lodash": "^4.14.112",
-    "@types/mocha": "^2.2.43",
-    "@types/node": "^8.10.15",
-    "browserify": "^15.1.0",
+    "@types/mocha": "^5.2.5",
+    "@types/node": "^10.5.2",
+    "browserify": "^16.2.2",
     "chai": "^4.1.2",
-    "check-node-version": "^3.1.1",
+    "check-node-version": "^3.2.0",
     "chokidar-cli": "^1.2.0",
     "heroku": "^7.7.4",
     "husky": "^0.14.3",
     "lodash": "^4.17.10",
-    "mocha": "^4.0.1",
+    "mocha": "^5.2.0",
     "parallel": "^1.2.0",
-    "prettier": "^1.10.2",
-    "ts-node": "^3.3.0",
-    "tsify": "^3.0.4",
-    "typescript": "^2.6.2"
+    "prettier": "^1.13.7",
+    "ts-node": "^7.0.0",
+    "tsify": "^4.0.0",
+    "typescript": "^2.9.2"
   }
 }
