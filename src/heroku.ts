@@ -11,6 +11,7 @@ type MetricsSample = {
 
 type MetricsLine = {
   timestamp: string;
+  appName: string;
   dynoType: string;
   dynoName: string;
   dynoUuid: string;
@@ -25,7 +26,7 @@ const RUNTIME_METRICS_LOG_LINE = /^(.+?) heroku\[(.+?)\]: source=(.+?)\.\d+ dyno
 
 // @see https://devcenter.heroku.com/articles/log-runtime-metrics#log-format
 // @example "2018-07-20T14:39:33.237725+00:00 heroku[worker.1]: source=worker.1 dyno=heroku.56333511.0c1abc57-d574-4f93-ba53-765133c0ef3a sample#load_avg_1m=0.00 sample#load_avg_5m=0.00 sample#load_avg_15m=0.00"
-export function parseRuntimeMetricsLogLine(line: string): MetricsLine | null {
+export function parseRuntimeMetricsLogLine(appName: string, line: string): MetricsLine | null {
   const match = line.match(RUNTIME_METRICS_LOG_LINE);
   if (!match) return null; // doesn't match the pattern we're looking for
   const [, timestamp, dynoName, dynoType, dynoUuid, rawSamples] = match;
@@ -37,7 +38,7 @@ export function parseRuntimeMetricsLogLine(line: string): MetricsLine | null {
       const sampleValue = parseFloat(rawValue);
       return { sampleName, sampleValue, sampleUnit };
     });
-  return { timestamp, dynoName, dynoUuid, dynoType, samples };
+  return { timestamp, appName, dynoName, dynoUuid, dynoType, samples };
 }
 
 export function getRuntimeMetricsForApp(
@@ -52,7 +53,7 @@ export function getRuntimeMetricsForApp(
     .then(stdout =>
       stdout
         .split('\n')
-        .map(parseRuntimeMetricsLogLine)
+        .map(line => parseRuntimeMetricsLogLine(appName, line))
         .filter(isNotNull),
     )
     .catch(err => {
@@ -87,9 +88,9 @@ export function flattenAndSelectSamples(lines: MetricsLine[], calculateMemoryUse
   }
 }
 
-export function metricsLinesToInfluxLines(appName: string, lines: Flattened[]): string[] {
+export function metricsLinesToInfluxLines(lines: Flattened[]): string[] {
   return lines.map(line => {
-    const { timestamp, dynoType, dynoName, dynoUuid, sampleName, sampleValue, sampleUnit } = line;
+    const { timestamp, appName, dynoType, dynoName, dynoUuid, sampleName, sampleValue, sampleUnit } = line;
     return toInfluxLine(
       MEASUREMENT_NAME,
       { appName, dynoType, sampleName, dynoName, dynoUuid },
