@@ -54,11 +54,11 @@ export function sendInfluxLines(
   dbUrl: string, // e.g. "https://my-influxdb.example.com/"
   dbName: string, // e.g. "my_metrics_db"
   lines: string | string[], // see toInfluxLine()
-  credentials: string = '', // e.g. "user:pass"
+  dbCredentials: string = '', // e.g. "user:pass"
   axiosImplementation = axios, // only useful in testing
 ) {
   const url = (dbUrl + '').replace(/\/*$/, '/write?db=' + dbName);
-  const [username, password] = credentials ? credentials.split(':') : [null, null];
+  const [username, password] = dbCredentials ? dbCredentials.split(':') : [null, null];
   const auth = username && password ? { username, password } : undefined;
   const data = typeof lines === 'string' ? lines : lines.join('\n');
   return axiosImplementation.post(url, data, { auth }).then(
