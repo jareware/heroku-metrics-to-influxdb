@@ -1,6 +1,7 @@
 import { execShell } from './shell';
 import { isNotNull } from './types';
 import { flatMap, groupBy, map, last, sortBy, isNumber, keys } from 'lodash';
+import { toInfluxLine } from './influxdb';
 
 type MetricsSample = {
   sampleName: string;
@@ -19,6 +20,7 @@ type MetricsLine = {
 type Flattened = MetricsLine & MetricsSample;
 
 const HEROKU_BIN = './node_modules/.bin/heroku';
+const MEASUREMENT_NAME = 'heroku_runtime_metrics';
 const RUNTIME_METRICS_LOG_LINE = /^(.+?) heroku\[(.+?)\]: source=(.+?)\.\d+ dyno=(.+?) (sample#.+)$/;
 
 // @see https://devcenter.heroku.com/articles/log-runtime-metrics#log-format
@@ -76,4 +78,16 @@ export function flattenAndSelectSamples(lines: MetricsLine[], calculateMemoryUse
   } else {
     return latests;
   }
+}
+
+export function metricsLinesToInfluxLines(appName: string, lines: Flattened[]): string[] {
+  return lines.map(line => {
+    const { timestamp, dynoType, dynoName, dynoUuid, sampleName, sampleValue, sampleUnit } = line;
+    return toInfluxLine(
+      MEASUREMENT_NAME,
+      { appName, dynoType, sampleName, dynoName, dynoUuid },
+      { sampleValue, sampleUnit },
+      new Date(timestamp).getTime(),
+    );
+  });
 }
