@@ -3,12 +3,6 @@ import { isNotNull } from './types';
 import { flatMap, groupBy, map, last, sortBy, isNumber, keys } from 'lodash';
 import { toInfluxLine } from './influxdb';
 
-type MetricsSample = {
-  sampleName: string;
-  sampleValue: number;
-  sampleUnit: string;
-};
-
 type MetricsLine = {
   timestamp: string;
   appName: string;
@@ -16,6 +10,12 @@ type MetricsLine = {
   dynoName: string;
   dynoUuid: string;
   samples: MetricsSample[];
+};
+
+type MetricsSample = {
+  sampleName: string;
+  sampleValue: number;
+  sampleUnit: string;
 };
 
 type Flattened = MetricsLine & MetricsSample;
