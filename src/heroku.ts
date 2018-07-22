@@ -1,7 +1,7 @@
 import { execShell } from './shell';
 import { isNotNull } from './types';
 import { flatMap, groupBy, map, last, sortBy, isNumber, keys } from 'lodash';
-import { toInfluxLine, sendInfluxLines } from './influxdb';
+import { toInfluxLine } from './influxdb';
 
 type MetricsLine = {
   timestamp: string;
@@ -23,22 +23,6 @@ type Flattened = MetricsLine & MetricsSample;
 const HEROKU_BIN = './node_modules/.bin/heroku';
 const MEASUREMENT_NAME = 'heroku_runtime_metrics';
 const RUNTIME_METRICS_LOG_LINE = /^(.+?) heroku\[(.+?)\]: source=(.+?)\.\d+ dyno=(.+?) (sample#.+)$/;
-
-export function collectMetrics(
-  apiKey: string,
-  appNames: string[],
-  dynoTypes: string[],
-  dbUrl: string, // e.g. "https://my-influxdb.example.com/"
-  dbName: string, // e.g. "my_metrics_db"
-  dbCredentials: string = '', // e.g. "user:pass"
-) {
-  const permutations = flatMap(appNames, appName => dynoTypes.map(dynoType => [appName, dynoType]));
-  return Promise.all(permutations.map(([appName, dynoType]) => getRuntimeMetricsForApp(apiKey, appName, dynoType)))
-    .then(metrics => metrics.reduce((memo, next) => memo.concat(next), []))
-    .then(flattenAndSelectSamples)
-    .then(metricsLinesToInfluxLines)
-    .then(lines => sendInfluxLines(dbUrl, dbName, lines, dbCredentials));
-}
 
 // @see https://devcenter.heroku.com/articles/log-runtime-metrics#log-format
 // @example "2018-07-20T14:39:33.237725+00:00 heroku[worker.1]: source=worker.1 dyno=heroku.56333511.0c1abc57-d574-4f93-ba53-765133c0ef3a sample#load_avg_1m=0.00 sample#load_avg_5m=0.00 sample#load_avg_15m=0.00"
