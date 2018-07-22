@@ -45,7 +45,7 @@ export function getRuntimeMetricsForApp(
   apiKey: string,
   appName: string,
   dynoType: string, // e.g. "web" or "worker"
-  lines = 16,
+  lines = 32, // consider raising this if there's a LOT of dynos, or logs are noisy
 ): Promise<MetricsLine[]> {
   return execShell(
     `HEROKU_API_KEY=${apiKey} ${HEROKU_BIN} logs --app ${appName} --source heroku --dyno ${dynoType} --no-color --num ${lines}`,
