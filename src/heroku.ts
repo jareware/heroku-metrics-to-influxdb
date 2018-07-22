@@ -48,12 +48,19 @@ export function getRuntimeMetricsForApp(
 ): Promise<MetricsLine[]> {
   return execShell(
     `HEROKU_API_KEY=${apiKey} ${HEROKU_BIN} logs --app ${appName} --source heroku --dyno ${dynoType} --no-color --num ${lines}`,
-  ).then(stdout =>
-    stdout
-      .split('\n')
-      .map(parseRuntimeMetricsLogLine)
-      .filter(isNotNull),
-  );
+  )
+    .then(stdout =>
+      stdout
+        .split('\n')
+        .map(parseRuntimeMetricsLogLine)
+        .filter(isNotNull),
+    )
+    .catch(err => {
+      console.log(
+        `Error: Could not get runtime metrics for app "${appName}" and dyno type "${dynoType}", caused by ${err}`,
+      );
+      return [];
+    });
 }
 
 export function flattenAndSelectSamples(lines: MetricsLine[], calculateMemoryUsed = true): Flattened[] {
