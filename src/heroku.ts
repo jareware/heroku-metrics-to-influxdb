@@ -67,12 +67,7 @@ export function flattenAndSelectSamples(lines: MetricsLine[], calculateMemoryUse
         const latestQuota = latests.find(x => x.dynoUuid === dynoUuid && x.sampleName === 'memory_quota');
         if (!latestRss || !latestQuota) return null; // no samples found from which to calculate used percentage
         const memoryUsed = (latestRss.sampleValue * 100) / latestQuota.sampleValue;
-        if (!isNumeric(memoryUsed)) {
-          console.log(
-            `Warn: Could not calculate "memory_used" from "${latestRss.sampleValue}" and "${latestQuota.sampleValue}"`,
-          );
-          return null; // most likely got a NaN -> log it for any hope of debugging it later
-        }
+        if (!isNumeric(memoryUsed)) return null; // most likely got a NaN -> don't have good values
         const sampleValue = Math.round(memoryUsed);
         return { ...latestRss, samples: [], sampleName: 'memory_used', sampleValue, sampleUnit: '%' };
       })
