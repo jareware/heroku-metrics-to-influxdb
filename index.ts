@@ -4,7 +4,7 @@ import { LambdaHandlers } from './src/lambda';
 declare var lambda: LambdaHandlers;
 
 const {
-  HEROKU_API_KEY,
+  HEROKU_API_TOKEN,
   HEROKU_APP_NAMES,
   HEROKU_DYNO_TYPES,
   INFLUXDB_URL,
@@ -27,7 +27,7 @@ if (typeof lambda !== 'undefined') {
 function main() {
   const then = Date.now();
   return collectMetrics(
-    HEROKU_API_KEY || '',
+    HEROKU_API_TOKEN || '',
     (HEROKU_APP_NAMES || '').split(' '),
     (HEROKU_DYNO_TYPES || '').split(' '),
     INFLUXDB_URL || '',

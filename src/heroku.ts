@@ -1,7 +1,7 @@
-import { execShell } from './shell';
 import { isNotNull } from './types';
 import { flatMap, groupBy, map, last, sortBy, isNumber, keys } from 'lodash';
 import { toInfluxLine } from './influxdb';
+import axios from 'axios';
 
 type MetricsLine = {
   timestamp: string;
@@ -20,7 +20,6 @@ type MetricsSample = {
 
 type Flattened = MetricsLine & MetricsSample;
 
-const HEROKU_BIN = './node_modules/.bin/heroku';
 const MEASUREMENT_NAME = 'heroku_runtime_metrics';
 const RUNTIME_METRICS_LOG_LINE = /^(.+?) heroku\[(.+?)\]: source=(.+?)\.\d+ dyno=(.+?) (sample#.+)$/;
 
@@ -42,26 +41,33 @@ export function parseRuntimeMetricsLogLine(appName: string, line: string): Metri
 }
 
 export function getRuntimeMetricsForApp(
-  apiKey: string,
+  apiToken: string,
   appName: string,
   dynoType: string, // e.g. "web" or "worker"
   lines = 32, // consider raising this if there's a LOT of dynos, or logs are noisy
 ): Promise<MetricsLine[]> {
-  return execShell(
-    `HEROKU_API_KEY=${apiKey} ${HEROKU_BIN} logs --app ${appName} --source heroku --dyno ${dynoType} --no-color --num ${lines}`,
-  )
-    .then(stdout =>
-      stdout
+  return axios({
+    method: 'POST',
+    url: `https://api.heroku.com/apps/${appName}/log-sessions`,
+    headers: {
+      Authorization: `Bearer ${apiToken}`,
+      Accept: 'application/vnd.heroku+json; version=3',
+    },
+    data: {
+      dyno: dynoType,
+      lines,
+      source: 'heroku',
+      tail: false,
+    },
+  })
+    .then(res => res.data.logplex_url)
+    .then(url => axios.get(url))
+    .then(res =>
+      (res.data as string)
         .split('\n')
         .map(line => parseRuntimeMetricsLogLine(appName, line))
         .filter(isNotNull),
-    )
-    .catch(err => {
-      console.log(
-        `Error: Could not get runtime metrics for app "${appName}" and dyno type "${dynoType}", caused by ${err}`,
-      );
-      return [];
-    });
+    );
 }
 
 export function flattenAndSelectSamples(lines: MetricsLine[], calculateMemoryUsed = true): Flattened[] {
