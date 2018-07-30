@@ -1,6 +1,7 @@
 import { isNotNull } from './types';
 import { flatMap, groupBy, map, last, sortBy, isNumber, keys } from 'lodash';
 import { toInfluxLine } from './influxdb';
+import { withRetries } from './promise';
 import axios from 'axios';
 
 type MetricsLine = {
@@ -60,8 +61,8 @@ export function getRuntimeMetricsForApp(
       tail: false,
     },
   })
-    .then(res => res.data.logplex_url)
-    .then(url => axios.get(url))
+    .then(res => res.data.logplex_url as string)
+    .then(withRetries('logplex fetch', 5, 1000, url => axios.get(url)))
     .then(res =>
       (res.data as string)
         .split('\n')
