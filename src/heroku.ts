@@ -67,7 +67,13 @@ export function getRuntimeMetricsForApp(
         .split('\n')
         .map(line => parseRuntimeMetricsLogLine(appName, line))
         .filter(isNotNull),
-    );
+    )
+    .catch(err => {
+      console.log(
+        `Error: Could not get runtime metrics for app "${appName}" and dyno type "${dynoType}", caused by ${err}`,
+      );
+      return [];
+    });
 }
 
 export function flattenAndSelectSamples(lines: MetricsLine[], calculateMemoryUsed = true): Flattened[] {
