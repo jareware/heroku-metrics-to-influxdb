@@ -41,33 +41,39 @@ export function parseRuntimeMetricsLogLine(appName: string, line: string): Metri
   return { timestamp, appName, dynoName, dynoUuid, dynoType, samples };
 }
 
+// TODO: This session could be cached for up to 45 min it seems!
 export function getRuntimeMetricsForApp(
   apiToken: string,
   appName: string,
   dynoType: string, // e.g. "web" or "worker"
-  lines = 32, // consider raising this if there's a LOT of dynos, or logs are noisy
+  lines = 64, // consider raising this if there's a LOT of dynos, or logs are noisy
 ): Promise<MetricsLine[]> {
-  return axios({
-    method: 'POST',
-    url: `https://api.heroku.com/apps/${appName}/log-sessions`,
-    headers: {
-      Authorization: `Bearer ${apiToken}`,
-      Accept: 'application/vnd.heroku+json; version=3',
-    },
-    data: {
-      dyno: dynoType,
-      lines,
-      source: 'heroku',
-      tail: false,
-    },
-  })
-    .then(res => res.data.logplex_url as string)
-    .then(withRetries('logplex fetch', 5, 1000, url => axios.get(url)))
-    .then(res =>
-      (res.data as string)
-        .split('\n')
-        .map(line => parseRuntimeMetricsLogLine(appName, line))
-        .filter(isNotNull),
+  return Promise.resolve()
+    .then(
+      withRetries('logplex create', 3, 1000, () =>
+        axios({
+          method: 'POST',
+          url: `https://api.heroku.com/apps/${appName}/log-sessions`,
+          headers: {
+            Authorization: `Bearer ${apiToken}`,
+            Accept: 'application/vnd.heroku+json; version=3',
+          },
+          data: {
+            dyno: dynoType,
+            lines,
+            source: 'heroku',
+            tail: false,
+          },
+        })
+          .then(res => res.data.logplex_url as string)
+          .then(withRetries('logplex fetch', 3, 1000, url => axios.get(url)))
+          .then(res =>
+            (res.data as string)
+              .split('\n')
+              .map(line => parseRuntimeMetricsLogLine(appName, line))
+              .filter(isNotNull),
+          ),
+      ),
     )
     .catch(err => {
       console.log(
